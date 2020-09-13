@@ -6,4 +6,4 @@ jspm_packages
 .serverless
 
 # Config files
-resources/*.yml
+resources/*.json

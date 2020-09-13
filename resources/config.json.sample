@@ -1,0 +1,12 @@
+{
+  "_comments": {
+    "DEFAULTDOMAIN": "The default domain to use for all redirect. Must begin with https:// and omit the trailing slash.",
+    "SETTINGSS3BUCKET": "The name of the S3 bucket where your redirects.json is stored.",
+    "SETTINGSS3KEY": "The key (path) to your redirects.json file."
+  },
+  "envvars": {
+    "DEFAULTDOMAIN": "https://github.com/kyle138",
+    "SETTINGSS3BUCKET": "settings-json-bucket",
+    "SETTINGSS3KEY": "simple-redirects/wp/redirects.json"
+  }
+}

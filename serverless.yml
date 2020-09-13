@@ -9,7 +9,7 @@ frameworkVersion: '1'
 
 custom:
   stage: ${opt:stage, "dev1"} # dev1, v1, dev2, v2, etc
-  config: ${file(resources/${self:custom.stage}-config.yml)}
+  config: ${file(resources/config.json)}
 
 provider:
   name: aws
@@ -19,26 +19,21 @@ provider:
   region: us-east-1
   stage: ${self:custom.stage}
   # Environment variables
-  environment:
-    DEFAULTDOMAIN: ${self:custom.config.defaultDomain}
-    DOMAINSETTINGSS3BUCKET: ${self:custom.config.domainSettingsS3Bucket}
-    DOMAINSETTINGS3KEY: ${self:custom.config.domainSettingsS3Key}
+  # environment:
+  #  DEFAULTDOMAIN: ${self:custom.config.defaultDomain}
+  #  SETTINGSS3BUCKET: ${self:custom.config.settingsS3Bucket}
+  #  SETTINGSS3KEY: ${self:custom.config.settingsS3Key}
   # IAM statements
   # Give lambda role access to domain settings file in S3
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:ListBucket"
-      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", ${self:custom.config.domainSettingsS3Bucket} ] ]  }
+      Resource: "arn:aws:s3:::${self:custom.config.envvars.SETTINGSS3BUCKET}"
     - Effect: "Allow"
       Action:
         - "s3:GetObject"
-      Resource:
-        Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - ${self:custom.config.domainSettingsS3Bucket}
-            - ${self:custom.config.domainSettingsS3Key}
+      Resource: "arn:aws:s3:::${self:custom.config.envvars.SETTINGSS3BUCKET}/${self:custom.config.envvars.SETTINGSS3KEY}"
 
 # you can add packaging information here
 #package:
@@ -52,9 +47,10 @@ provider:
 functions:
   simpleRedirectAtEdge:
     handler: lambdas/simpleRedirect.handler
+    timeout: 30
     events:
       - cloudFront:
-          eventType: origin-response
+          eventType: origin-request
           pathPattern: /
           behavior:
             ViewerProtocolPolicy: allow-all
