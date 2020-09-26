@@ -3,6 +3,9 @@
 // Lambda@Edge doesn't allow env vars, so load them from json file.
 const config = require('../resources/config.json');
 
+// Load modules
+const querystring = require('querystring');
+
 // Instantiate
 const settings = {};
 
@@ -63,43 +66,42 @@ function loadSettingsFromS3File(bucket,key) {
   }); // End Promise
 } // End loadSettingsFromS3File
 
-// getPostID
-// Retrieves post ID from a queryString of type p=###
-// @param {string} qs - the queryString to extract Post ID from
-// @return {promise} - Error or response PostID
-function getPostID(qs) {
-  return new Promise((resolve,reject) => {
-    // Extract value after p= and check if it's a postive number.
-    qs = qs.split('p=');
-    if(Math.sign(parseInt(qs[1],10))) {
-      console.log(`getPostID: qs[1]: ${qs[1]}`);  // DEBUG:
-      return resolve(qs[1]);
-    } else {
-      console.log(`Error: getPostID: qs: ${qs}`); // DEBUG:
-      return reject(new Error(`Error: getPostID`));
-    }
-  }); // End Promise
-} // End getPostID
-
 // generateNewUri
-// Retrieves URI from settings.redirects for given PostID
-// @param {string} pid - The PostID to retrieve a redirect for
+// Retrieves URI from settings.redirects for given CategoryID, PostID, or PageID
+// @param {object} qsObject - The parsed querystring for this request.
 // @return {promise} - Error or response newURI
-function generateNewUri(pid) {
+function generateNewUri(qs) {
   return new Promise((resolve,reject) => {
-    // settings.redirects is an array with the old PostID's as the keys
-    // If redirects[] has an entry for pid
+    // settings.redirects[cats] is an array with the old categoryIDs as the keys
+    // settings.redirects[posts] is an array with the old PostIDs and PageIDs as the keys
+    let type;
+    let pid;
+    // If query type is cat, the redirect is found in redirects['cats']
+    if('cat' in qs && qs.cat > 0) {
+      type = 'cats';
+      pid = qs.cat;
+    } else {
+    // Must be either p or page_id, these are both found in redirects['posts'].
+      type = 'posts';
+      pid = ('p' in qs && qs.p > 0)
+          ? qs.p
+          : ('page_id' in qs && qs.page_id > 0)
+            ? qs.page_id
+            : 0;
+    }
+//    console.log(JSON.stringify(settings.redirects[type],null,2)); // DEBUG:
+    // If redirects.[type][pid] has an entry
     // and that entry has a redir value
     // and that redir value has some length
     // return it
-    if( settings.redirects[pid]
-     && settings.redirects[pid].hasOwnProperty('redir')
-     && settings.redirects[pid].redir.length > 0) {
-      console.log(`generateNewUri: redir found: ${settings.redirects[pid].redir}`); // DEBUG:
-      return resolve(settings.redirects[pid].redir);
+    if( settings.redirects[type][pid]
+     && settings.redirects[type][pid].hasOwnProperty('redir')
+     && settings.redirects[type][pid].redir.length > 0) {
+      console.log(`generateNewUri: redir found: ${settings.redirects[type][pid].redir}`); // DEBUG:
+      return resolve(settings.redirects[type][pid].redir);
     } else {
       // No redir found for the given pid
-      console.log(`PostID ${pid} not found.`);  // DEBUG:
+      console.log(`Type: ${type} : PostID ${pid} not found.`);  // DEBUG:
       return reject(new Error('Not Found'));
     }
   }); // End Promise
@@ -111,7 +113,7 @@ function generateNewUri(pid) {
 // @return {promise} - 301 or 404 response object
 function createResponseObject(uri) {
   return new Promise((resolve) => {
-    console.log('createResponseObject:');  // DEBUG:
+    console.log('createResponseObject:'+ uri );  // DEBUG:
     // If the uri is null, return 404 object.
     if(uri === null) {
       return resolve(
@@ -148,8 +150,10 @@ module.exports.handler = async (event, context, callback) => {
   let uriOld = event.Records[0].cf.request.uri;
   let queryString = event.Records[0].cf.request.querystring;
 
-  // Only redirect requests to /?p=###, otherwise skip.
-  if(uriOld !== '/' || !/^p=\d/.test(queryString)) {
+  // Only redirect requests to ?p=###, ?page_id=###, ?cat=###, ?paged=###...
+  // otherwise skip.
+  if(uriOld !== '/'
+  || !/(p|cat|page_id|paged)=\d/.test(queryString)) {
     console.log(`URI and queryString don't match redirects. ${uriOld}?${queryString}`); // DEBUG:
     // Return request, no redirect needed.
     return callback(null, event.Records[0].cf.request);
@@ -162,20 +166,32 @@ module.exports.handler = async (event, context, callback) => {
    config.envvars.SETTINGSS3KEY
   ].map(async (avar) => await validateRequiredVar(avar)))
   .then(async () => {
-   // Required Env Vars validated, load redirect settings.
-   console.debug('Environment variables exist.'); // DEBUG:
-   await loadSettingsFromS3File(
-     config.envvars.SETTINGSS3BUCKET,
-     config.envvars.SETTINGSS3KEY
-   );
-  }) // End Promise.all.then
-  .then(async () => {
-    // Extract postID from queryString
-    return await getPostID(queryString);
-  }) // End Promise.all.then.then
-  .then(async (postID) => {
-    // Generate new URI ******************
-    return await generateNewUri(postID);
+    console.debug('Environment variables exists.'); // DEBUG:
+    // Required Env Vars validated, parse the querystring.
+    let parsedQS = querystring.decode(queryString);
+    console.log('parsedQS: '+JSON.stringify(parsedQS,null,2)); // DEBUG:
+    return parsedQS;
+  })
+  .then(async (QS) => {
+    // If querystring contains ?paged=## convert to /page/##/, no need to look up.
+    if('paged' in QS && QS.paged >= 0) {
+      // If paged is 0 treat it as 1, otherwise keep it as-is.
+      QS.paged = (QS.paged == 0) ? 1 : QS.paged;
+      // Return 301 to /page/##/ and throw a not-an-error to end promise chain.
+      throw new Error(`page/${QS.paged}/`);
+    } else {
+      // querystring must be p, cat, or page_id, this requires a lookup.
+      // Load redirect settings from S3.
+      await loadSettingsFromS3File(
+        config.envvars.SETTINGSS3BUCKET,
+        config.envvars.SETTINGSS3KEY
+      );
+      return QS;
+    } // End If(paged)
+  })  // end Promise.all.then
+  .then(async (QS) => {
+    // Generate new URI
+    return await generateNewUri(QS);
   })  // End Promise.all.then.then.then
   .then(async (newURI) => {
     // Create the response object
@@ -187,11 +203,15 @@ module.exports.handler = async (event, context, callback) => {
     return callback(null, responseObject);
   })  // End Promise.all.then.then.then.then (This always makes me giggle.)
   .catch(async (err) => {
-   // Something went wrong. Create a 404 response.
-   console.error(err);
-   const response = await createResponseObject(null);
-   console.log('Error Response: '+JSON.stringify(response,null,2)); // DEBUG:
-   // Return the 404 response and shut down Lambda.
-   return callback(null, response);
+   // If err.message starts with page/ it's not really an error, create 301.
+   console.error(err);  // DEBUG
+   if(/^page\//.test(err.message)) {
+     console.log('Not really an error, just breaking chains.');
+     return callback(null, await createResponseObject(err.message));
+   } else {
+     // Something really went wrong. Create a 404 response.
+     console.log('A real error.');  // DEBUG
+     return callback(null, await createResponseObject(null));
+   }
   }); // End Promise.all.catch
 };  // End module.exports.handler
