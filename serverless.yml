@@ -18,11 +18,6 @@ provider:
   timeout: 30
   region: us-east-1
   stage: ${self:custom.stage}
-  # Environment variables
-  # environment:
-  #  DEFAULTDOMAIN: ${self:custom.config.defaultDomain}
-  #  SETTINGSS3BUCKET: ${self:custom.config.settingsS3Bucket}
-  #  SETTINGSS3KEY: ${self:custom.config.settingsS3Key}
   # IAM statements
   # Give lambda role access to domain settings file in S3
   iamRoleStatements:
@@ -77,3 +72,8 @@ resources:
             SslSupportMethod: sni-only
           DefaultCacheBehavior:
             ViewerProtocolPolicy: redirect-to-https
+          CustomErrorResponses:
+          - ErrorCode: '404'
+            ErrorCachingMinTTL: '10'
+            ResponseCode: '404'
+            ResponsePagePath: "/page-not-found/"
