@@ -48,7 +48,7 @@ functions:
           eventType: origin-request
           pathPattern: /
           behavior:
-            ViewerProtocolPolicy: allow-all
+            ViewerProtocolPolicy: redirect-to-https
             ForwardedValues:
               QueryString: true
           origin:
@@ -65,8 +65,7 @@ resources:
         DistributionConfig:
           Comment: CF for S3 WPNH
           PriceClass: PriceClass_100
-          Aliases:
-            - nighthawk2.kylemunz.com
+          Aliases: ${self:custom.config.cloudfront.ALIASES}
           ViewerCertificate:
             AcmCertificateArn: arn:aws:acm:us-east-1:304786516436:certificate/4bdc677c-00ac-4da4-bb6d-2c6b9d8cfe65
             SslSupportMethod: sni-only
