@@ -31,13 +31,12 @@ provider:
       Resource: "arn:aws:s3:::${self:custom.config.envvars.SETTINGSS3BUCKET}/${self:custom.config.envvars.SETTINGSS3KEY}"
 
 # you can add packaging information here
-#package:
+package:
 #  include:
 #    - include-me.js
 #    - include-me-dir/**
-#  exclude:
-#    - exclude-me.js
-#    - exclude-me-dir/**
+  exclude:
+    - docs/**
 
 functions:
   simpleRedirectAtEdge:
