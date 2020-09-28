@@ -1,7 +1,0 @@
-{
-  "envvars": {
-    "DEFAULTDOMAIN": "https://nighthawk.kylemunz.com",
-    "SETTINGSS3BUCKET": "kyle138-json",
-    "SETTINGSS3KEY": "simple-redirects/wpnh/redirects.json"
-  }
-}
