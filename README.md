@@ -38,3 +38,14 @@ Copy resources/config.json.sample to resources/config.json, it will appear as be
   * "SETTINGSS3KEY": This is the path to your redirects.json within the S3 bucket. The preset example value is "simple-redirects/wp/redirects.json".
 * In the "cloudfront" section enter your infomation for the following value:
   * "ALIASES": This is an array containing the Alternate Domain Names (CNAMEs) for the CloudFront distribution.
+
+## Components
+- **Lambda:** ```lambdas/simpleRedirect.handler``` Lambda@Edge function triggered by requests to CloudFront.
+  - Verifies that URI is '/' and querystring contains a value for p, page_id, attachment_id, cat, author, m, or paged
+  - Retrieves redirects.json from S3 and loads it outside the event handler so subsequent redirects respond faster. 
+  - Returns a 301 redirect or a 404.
+- **CloudFront:** CloudFront distribution that caches your S3 website
+  - Path pattern '/' with a querystring triggers the Lambda@Edge redirect function.
+  - Default behavior forwards the remaining requests to S3
+
+## Credits
