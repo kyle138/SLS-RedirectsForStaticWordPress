@@ -24,6 +24,16 @@ function validateRequiredVar(reqvar) {
   }); // End Promise
 } // End validateEnvar
 
+// splitDate
+// Converts yyyymm to array of ['yyyy','mm']
+// @param {number,string} n - A 6 digit value of either number or string type.
+// @return {promise} - response object
+function splitDate(n) {
+  // n comes from ?m=###### which should be a string, if not convert it.
+  n = (typeof n == 'number') ? n.toString(10) : n;
+  return [n.substring(0,4), n.substring(4)];
+} // End splitDate
+
 // loadSettingsFromS3File
 // Only loads into the global 'settings' object if it is empty.
 // @param {string} bucket - The S3 bucket containing the settings file.
@@ -67,30 +77,52 @@ function loadSettingsFromS3File(bucket,key) {
 } // End loadSettingsFromS3File
 
 // generateNewUri
-// Retrieves URI from settings.redirects for given CategoryID, PostID, or PageID
-// @param {object} qsObject - The parsed querystring for this request.
+// Retrieves URI from settings.redirects for the following variables:
+// p, page_id, cat, author, or attachment_id
+// @param {object} qs - The parsed querystring for this request.
 // @return {promise} - Error or response newURI
 function generateNewUri(qs) {
   return new Promise((resolve,reject) => {
-    // settings.redirects[cats] is an array with the old categoryIDs as the keys
-    // settings.redirects[posts] is an array with the old PostIDs and PageIDs as the keys
+    // settings.redirects[authors] is an array with old authorIDs as the key.
+    // settings.redirects[cats] is an array with the old categoryIDs as the key.
+    // settings.redirects[posts] is an array with the old PostIDs, PageIDs, and attachmentIDs as the key.
     let type;
     let pid;
-    // If query type is cat, the redirect is found in redirects['cats']
-    if('cat' in qs && qs.cat > 0) {
-      type = 'cats';
-      pid = qs.cat;
-    } else {
-    // Must be either p or page_id, these are both found in redirects['posts'].
-      type = 'posts';
-      pid = ('p' in qs && qs.p > 0)
-          ? qs.p
-          : ('page_id' in qs && qs.page_id > 0)
-            ? qs.page_id
-            : 0;
-    }
+    // The values for type and pid depend on what sort of querystring vars were sent.
+    switch(true) {
+      case 'author' in qs:
+        console.log("case: author");  // DEBUG:
+        if(qs.author > 0) {
+          type = 'authors';
+          pid = qs.author;
+          break;
+        } else {
+          console.error(`Invalid value for qs.author: ${qs.authur}`); // DEBUG:
+          return reject(new Error('Invalid value.'));
+        }
+      case 'cat' in qs:
+        console.log("case: cat"); // DEBUG:
+        if(qs.cat > 0) {
+          type = 'cats';
+          pid = qs.cat;
+          break;
+        } else {
+          console.error((`Invalid value for qs.cat: ${qs.cat}`)); // DEBUG:
+          return reject(new Error('Invalid value'));
+        }
+      default:
+        console.log("case: default"); // DEBUG:
+        // The remaining QS vars p, page_id, and attachment_id are found in redirects['posts'].
+        type = 'posts';
+        pid = qs.p||qs.page_id||qs.attachment_id;
+        if(pid < 0) {
+          console.error(`Invalid value for pid: ${pid}`); // DEBUG:
+          return reject(new Error('Invalid value'));
+        }
+        break;
+    } // End switch
 //    console.log(JSON.stringify(settings.redirects[type],null,2)); // DEBUG:
-    // If redirects.[type][pid] has an entry
+    // If settings.redirects[type][pid] has an entry
     // and that entry has a redir value
     // and that redir value has some length
     // return it
@@ -133,7 +165,6 @@ function createResponseObject(uri) {
           headers: {
             location: [{
               key: 'Location',
-              // Prepend domain if not in URI.
               value: config.envvars.DEFAULTDOMAIN+uri
             }]
           }
@@ -150,10 +181,11 @@ module.exports.handler = async (event, context, callback) => {
   let uriOld = event.Records[0].cf.request.uri;
   let queryString = event.Records[0].cf.request.querystring;
 
-  // Only redirect requests to ?p=###, ?page_id=###, ?cat=###, ?paged=###...
+  // Only redirect requests to the following querystring vars:
+  // ?p=###, ?page_id=###, ?attachment_id=###, ?cat=###, ?paged=###, ?author=###, ?m=###
   // otherwise skip.
   if(uriOld !== '/'
-  || !/(p|cat|page_id|paged)=\d/.test(queryString)) {
+  || !/(p|page_id|attachment_id|cat|author|m|paged)=\d/.test(queryString)) {
     console.log(`URI and queryString don't match redirects. ${uriOld}?${queryString}`); // DEBUG:
     // Return request, no redirect needed.
     return callback(null, event.Records[0].cf.request);
@@ -173,39 +205,62 @@ module.exports.handler = async (event, context, callback) => {
     return parsedQS;
   })
   .then(async (QS) => {
-    // If querystring contains ?paged=## convert to /page/##/, no need to look up.
-    if('paged' in QS && QS.paged >= 0) {
-      // If paged is 0 treat it as 1, otherwise keep it as-is.
-      QS.paged = (QS.paged == 0) ? 1 : QS.paged;
-      // Return 301 to /page/##/ and throw a not-an-error to end promise chain.
-      throw new Error(`page/${QS.paged}/`);
-    } else {
-      // querystring must be p, cat, or page_id, this requires a lookup.
-      // Load redirect settings from S3.
-      await loadSettingsFromS3File(
-        config.envvars.SETTINGSS3BUCKET,
-        config.envvars.SETTINGSS3KEY
-      );
-      return QS;
-    } // End If(paged)
-  })  // end Promise.all.then
+    // Check if querystring can just be converted or needs to be looked up.
+    switch(true) {
+      case 'paged' in QS:
+        // If querystring contains paged, convert to /page/##/ with no need to look up.
+        console.log("case: paged"); // DEBUG:
+        if(QS.paged >= 0) {
+          // If paged is 0 treat it as 1, otherwise keep it as-is.
+          QS.paged = (QS.paged == 0) ? 1 : QS.paged;
+          // Return 301 to /page/##/ and throw a not-an-error to end promise chain.
+          throw new Error(`page/${QS.paged}/`);
+        } else {
+          console.error(`Invalid value for QS.paged: ${QS.paged}`); // DEBUG:
+          throw new Error('Invalid value.');
+        } // End if paged >= 0
+      case 'm' in QS:
+        // If querystring contains m, convert to /date/yyyy/mm/ with no need to look up.
+        console.log("case: m"); // DEBUG:
+        // The value for m should always be 6 digits of form yyyymm.
+        if(/^\d{6}$/.test(QS.m)) {
+          // Convert m from yyyymm to ['yyyy','mm']
+          let splitm = splitDate(QS.m);
+          // Return 301 to /date/yyyy/mm/ and throw a not-an-error to end promise chain.
+          throw new Error(`date/${splitm[0]}/${splitm[1]}/`);
+        } else {
+          console.error(`Invalid value for QS.m: ${QS.m}`); // DEBUG:
+          throw new Error('Invalid value');
+        }
+      default:
+        // The rest of the query string values require a lookup from S3.
+        console.log("case: default"); // DEBUG:
+        // querystring must be p, page_id, cat, attachment_id, or author
+        // Load redirect settings from S3.
+        await loadSettingsFromS3File(
+          config.envvars.SETTINGSS3BUCKET,
+          config.envvars.SETTINGSS3KEY
+        );
+        return QS;
+    } // End switch
+  })  // End Promise.all.then
   .then(async (QS) => {
     // Generate new URI
     return await generateNewUri(QS);
-  })  // End Promise.all.then.then.then
+  })  // End Promise.all.then.then
   .then(async (newURI) => {
     // Create the response object
     return await createResponseObject(newURI);
-  })
+  })  // End Promise.all.then.then.then
   .then((responseObject) => {
     console.log(`responseObject: `+JSON.stringify(responseObject,null,2));  // DEBUG:
     // Return the 301 response and shut down Lambda.
     return callback(null, responseObject);
   })  // End Promise.all.then.then.then.then (This always makes me giggle.)
   .catch(async (err) => {
-   // If err.message starts with page/ it's not really an error, create 301.
+   // If err.message starts with page/ or date/ it's not really an error, create 301.
    console.error(err);  // DEBUG
-   if(/^page\//.test(err.message)) {
+   if(/^(page|date)\//.test(err.message)) {
      console.log('Not really an error, just breaking chains.');
      return callback(null, await createResponseObject(err.message));
    } else {
