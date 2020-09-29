@@ -38,6 +38,7 @@ package:
   exclude:
     - docs/**
     - resources/*.sample
+    - *.md
 
 functions:
   simpleRedirectAtEdge:
