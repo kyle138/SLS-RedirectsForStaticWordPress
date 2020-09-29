@@ -38,7 +38,7 @@ package:
   exclude:
     - docs/**
     - resources/*.sample
-    - *.md
+    - README.md
 
 functions:
   simpleRedirectAtEdge:
@@ -53,7 +53,7 @@ functions:
             ForwardedValues:
               QueryString: true
           origin:
-            DomainName: nighthawk.kylemunz.com.s3-website-us-east-1.amazonaws.com
+            DomainName: ${self:custom.config.cloudfront.DOMAINNAME}
             CustomOriginConfig:
               OriginProtocolPolicy: "http-only"
 
@@ -68,7 +68,7 @@ resources:
           PriceClass: PriceClass_100
           Aliases: ${self:custom.config.cloudfront.ALIASES}
           ViewerCertificate:
-            AcmCertificateArn: arn:aws:acm:us-east-1:304786516436:certificate/4bdc677c-00ac-4da4-bb6d-2c6b9d8cfe65
+            AcmCertificateArn: ${self:custom.config.cloudfront.ACMCERTIFICATEARN}
             SslSupportMethod: sni-only
           DefaultCacheBehavior:
             ViewerProtocolPolicy: redirect-to-https

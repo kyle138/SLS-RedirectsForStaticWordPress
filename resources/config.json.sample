@@ -1,9 +1,11 @@
 {
   "_comments": {
-    "DEFAULTDOMAIN": "The default domain to use for all redirect. Must begin with https:// and omit the trailing slash.",
+    "DEFAULTDOMAIN": "The default domain to use for all redirects. Must begin with https:// and omit the trailing slash.",
     "SETTINGSS3BUCKET": "The name of the S3 bucket where your redirects.json is stored.",
     "SETTINGSS3KEY": "The key (path) to your redirects.json file.",
-    "ALIASES": "Alternate Domain Names (CNAMEs) for CloudFront distribution."
+    "ALIASES": "Alternate Domain Names (CNAMEs) for CloudFront distribution.",
+    "DOMAINNAME": "The origin for CloudFront, your S3 bucket's web endpoint.",
+    "ACMCERTIFICATEARN": "The ARN for the AWS ACM certificate to use with this distribution."
   },
   "envvars": {
     "DEFAULTDOMAIN": "https://github.com/kyle138",
@@ -11,7 +13,8 @@
     "SETTINGSS3KEY": "simple-redirects/wp/redirects.json"
   },
   "cloudfront": {
-    "ALIASES": ["blog.example.com","blog2.example.com"]
+    "ALIASES": ["blog.example.com","blog2.example.com"],
+    "DOMAINNAME": "blog.example.com.s3-website-us-east-1.amazonaws.com",
+    "ACMCERTIFICATEARN": "arn:aws:acm:us-east-1:314159265358:certificate/identifier-string"
   }
-
 }
