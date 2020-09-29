@@ -7,6 +7,7 @@ After hosting WordPress in LAMP for decades I switched to hosting my blog static
 ## Prerequisites
 * This function assumes you already have WordPress set up with the wp2static installed and working.
 * You should also already have an S3 bucket set up for public webhosting that wp2static is deploying your site to.
+* You should already have a TLS certificate for your site setup in AWS ACM.
 * This function does not work with an existing CloudFront distribution and insists on creating a new one. You will need to manually configure this CloudFront distribution to use your webhosting S3 bucket as its origin.
 * Lastly you should also have a separate S3 bucket setup to host your redirects.json file. 
 
