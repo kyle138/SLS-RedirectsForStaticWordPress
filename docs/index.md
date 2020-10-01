@@ -1,4 +1,3 @@
-# [kyle138](https://github.com/kyle138)/[SLS-RedirectsForStaticWordPress](https://github.com/kyle138/SLS-RedirectsForStaticWordPress)
 ![Diagram](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/RedirectsForStaticWordPress-diagram.jpg)
 
 Everyone turns an old Pentium III desktop into a webserver just for fun right? In early 2007 I upgraded my computer and had to find something for my old one to do so I ended up installing CentOS and started hosting a WordPress blog. I ran that webserver in my house for over 6+ years until I eventually moved it into an AWS EC2 instance. Well it's been another 6+ years and I've moved it again, this time to S3 using the popular [WP2Static](https://wp2static.com/) plugin.
