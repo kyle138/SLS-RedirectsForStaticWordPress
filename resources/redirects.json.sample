@@ -1,0 +1,32 @@
+{
+  "authors":
+    {
+      "1": {
+        "redir": "author/kyle10001010"
+      },
+      "2": {
+        "redir": "author/kyle10001010"
+      }
+    },
+  "cats":
+    {
+      "1": {
+        "redir": "category/1/"
+      },
+      "2": {
+        "redir": "category/2/"
+      }
+    },
+  "posts":
+    {
+      "0": {
+        "redir": "/"
+      },
+      "1": {
+        "redir": "post1/"
+      },
+      "2": {
+        "redir": "post2/"
+      }
+    }
+}
