@@ -1,8 +1,9 @@
 # SLS-RedirectsForStaticWordPress
 Serverless Lambda framework for redirecting dynamic requests to a static WordPress site.
+![Diagram](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/RedirectsForStaticWordPress-diagram.jpg)
 
 ## Background
-After hosting WordPress in [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) for decades I switched to hosting my [blog](https://nighthawk.kylemunz.com/) statically in S3 using the popular [WP2Static plugin](https://wp2static.com/). This has several benefits such as cost, speed, and security, but it breaks the legacy dynamic links. WordPress now offers permalinks which replaces the old dynamic **?p=123** queries with **/category/post-title/**. This works well for static hosting, but if you've been sharing the old dynamic links to your blog for years those will all be broken in S3. Unfortunately there's no one simple solution to redirect these dynamic links but with a CloudFront distribution sitting in front of your S3 bucket you can intercept these query strings and use Lambda@Edge to generate redirects to the new permalink URIs.
+After hosting WordPress in [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) for decades I switched to hosting my [blog](https://nighthawk.kylemunz.com/) statically in S3 using the popular [WP2Static plugin](https://wp2static.com/). This has several benefits such as cost, speed, and security, but it breaks the legacy dynamic links. WordPress now offers permalinks which replaces the old dynamic **?p=123** queries with **/category/post-title/**. This works well for static hosting, but if you've been sharing the old dynamic links to your blog for years those will all be broken in S3. Unfortunately there's no one simple solution to redirect these dynamic links but with a CloudFront distribution sitting in front of your S3 bucket you can intercept these query strings and use Lambda@Edge to generate redirects to the new permalink URIs. Read more at [https://kyle138.github.io/SLS-RedirectsForStaticWordPress/](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/).
 
 ## Prerequisites
 This function assumes the following:
