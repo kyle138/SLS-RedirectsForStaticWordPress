@@ -48,13 +48,24 @@ Copy resources/config.json.sample to resources/config.json, it will appear as be
   * "ACMCERTIFICATEARN": The ARN for the ACM SSL certificate to use for CLoudFront.
 
 ## Components
-- **Lambda:** ```lambdas/simpleRedirect.handler``` Lambda@Edge function triggered by origin-requests to CloudFront.
-  - Verifies that URI is '/' and querystring contains a value for p, page_id, attachment_id, cat, author, m, or paged.
-  - Retrieves redirects.json from S3 and loads it outside the event handler so subsequent redirects respond faster.
-  - Returns a 301 redirect or a 404.
-- **CloudFront:** CloudFront distribution that caches your S3 website
-  - Path pattern '/' with a querystring triggers the Lambda@Edge redirect function.
-  - Default(\*) behavior forwards the remaining requests to S3
+- Created by this serverless framework:
+  - **Lambda:** ```lambdas/simpleRedirect.handler``` Lambda@Edge function triggered by origin-requests to CloudFront.
+    - Verifies that URI is '/' and querystring contains a value for p, page_id, attachment_id, cat, author, m, or paged.
+    - Retrieves redirects.json from S3 and loads it outside the event handler so subsequent redirects respond faster.
+    - Returns a 301 redirect or a 404.
+  - **CloudFront:** CloudFront distribution that caches your S3 website
+    - Path pattern '/' with a querystring triggers the Lambda@Edge redirect function.
+    - Default(\*) behavior forwards the remaining requests to S3
+  - **S3:** S3 bucket containing the redirects.json file.
+    - This is not the same as the S3 bucket hosting your static website.
+    - This bucket does not require public access and should be kept private.
+- Relied on by this framework but created externally:
+  - **WordPress:** The WordPress source for your blog.
+    - Hosted either in a local environment or a private hosting solution.
+    - Must have the WP2Static or similar plugin installed.
+  - **S3:** S3 bucket hosting your static website.
+    - This must be configured for public webhosting.
+    - The WP2Static plugin must be configured to deploy to this bucket.
 
 ## Credits
 By no means did I come up with all of this by myself. I drew heavy inspiration (and code) from the links below:
