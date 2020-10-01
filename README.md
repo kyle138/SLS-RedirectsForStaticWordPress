@@ -27,7 +27,7 @@ Copy resources/config.json.sample to resources/config.json, it will appear as be
     "ACMCERTIFICATEARN": "The ARN for the AWS ACM certificate to use with this distribution."
   },
   "envvars": {
-    "DEFAULTDOMAIN": "https://github.com/kyle138",
+    "DEFAULTDOMAIN": "https://blog.example.com",
     "SETTINGSS3BUCKET": "settings-json-bucket",
     "SETTINGSS3KEY": "simple-redirects/wp/redirects.json"
   },
