@@ -25,9 +25,9 @@ function validateRequiredVar(reqvar) {
 } // End validateEnvar
 
 // splitDate
-// Converts yyyymm to array of ['yyyy','mm']
+// Converts yyyymm to array.
 // @param {number,string} n - A 6 digit value of either number or string type.
-// @return {promise} - response object
+// @return {array} - ['yyyy','mm']
 function splitDate(n) {
   // n comes from ?m=###### which should be a string, if not convert it.
   n = (typeof n == 'number') ? n.toString(10) : n;
