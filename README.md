@@ -3,7 +3,7 @@ Serverless Lambda framework for redirecting dynamic requests to a static WordPre
 ![Diagram](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/RedirectsForStaticWordPress-diagram.jpg)
 
 ## Background
-After hosting WordPress in [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) for decades I switched to hosting my [blog](https://nighthawk.kylemunz.com/) statically in S3 using the popular [WP2Static plugin](https://wp2static.com/). This has several benefits such as cost, speed, and security, but it breaks the legacy dynamic links. WordPress now offers permalinks which replaces the old dynamic **?p=123** queries with **/category/post-title/**. This works well for static hosting, but if you've been sharing the old dynamic links to your blog for years those will all be broken in S3. Unfortunately there's no one simple solution to redirect these dynamic links but with a CloudFront distribution sitting in front of your S3 bucket you can intercept these query strings and use Lambda@Edge to generate redirects to the new permalink URIs. Read more at [https://kyle138.github.io/SLS-RedirectsForStaticWordPress/](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/).
+After hosting WordPress in [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) for decades I switched to hosting my [blog](https://nighthawk.kylemunz.com/) statically in S3. This function was built to handle the old (and now broken) dynamic links to my posts. Read more about the journey at [https://kyle138.github.io/SLS-RedirectsForStaticWordPress/](https://kyle138.github.io/SLS-RedirectsForStaticWordPress/).
 
 ## Prerequisites
 This function assumes the following:
@@ -15,7 +15,7 @@ This function assumes the following:
 * Lastly, you should have some familiarity with using the [Serverless Application Framework](https://www.serverless.com/).
 
 ## Configuration
-Copy resources/config.json.sample to resources/config.json, it will appear as below:
+Copy resources/config.json.sample to resources/config.json and edit as necessary for your information. It will appear as below:
 ```javascript
 {
   "_comments": {
@@ -47,6 +47,44 @@ Copy resources/config.json.sample to resources/config.json, it will appear as be
   * "ALIASES": This is an array containing the Alternate Domain Names (CNAMEs) for the CloudFront distribution.
   * "DOMAINNAME": This is the Origin Domain Name for CloudFront. This will be your hosting S3 bucket's web endpoint.
   * "ACMCERTIFICATEARN": The ARN for the ACM SSL certificate to use for CLoudFront.
+
+## Redirects
+Wordpress stores all of its post, author, category, etc IDs in its 'posts', 'users', and 'terms' DB tables. You will need to query the `ID` and `post_name` for attachment, post, and cat post_types and store them in a JSON file. The file will have an array for "authors", "cats", and "posts". I have provided an example in resources/redirects.json.sample. 
+```javascript
+{
+  "authors":
+    {
+      "1": {
+        "redir": "author/kyle10001010"
+      },
+      "2": {
+        "redir": "author/kyle00101011"
+      }
+    },
+  "cats":
+    {
+      "1": {
+        "redir": "category/1/"
+      },
+      "2": {
+        "redir": "category/2/"
+      }
+    },
+  "posts":
+    {
+      "0": {
+        "redir": "/"
+      },
+      "1": {
+        "redir": "post1/"
+      },
+      "2": {
+        "redir": "post2/"
+      }
+    }
+}
+```
+After your redirects.json file is generated it will need to be uploaded to a separate S3 bucket, **NOT** the bucket hosting your static site, and that bucket/key will need to be stored in the resources/config.json file.
 
 ## Components
 - Created by this serverless framework:
