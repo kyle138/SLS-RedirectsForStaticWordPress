@@ -11,7 +11,7 @@ This function assumes the following:
 * You should already have an S3 bucket set up for public webhosting that wp2static is deploying your site to.
 * You should also already have a TLS certificate for your site setup in AWS ACM.
 * This function does not work with an existing CloudFront distribution and insists on creating a new one.
-* You should also have a separate S3 bucket setup to host your redirects.json file.
+* You should also have a separate S3 bucket setup to host your redirects.json file.(See sample file in resources/redirects.json.sample)
 * Lastly, you should have some familiarity with using the [Serverless Application Framework](https://www.serverless.com/).
 
 ## Configuration
